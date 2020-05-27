@@ -4,7 +4,9 @@
     "version": "1.0.1",
     "unity": "2019.2",
     "description": "TextMeshPro Animator is a text animation system .",
+    "keywords": ["TextMesh Pro", "Animation"],
+    "category": "Animation",
     "dependencies": {
-         "com.unity.textmeshpro": "2.0.1",
+         "com.unity.textmeshpro": "2.0.1"
     }
 }
