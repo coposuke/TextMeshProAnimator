@@ -1,5 +1,6 @@
 {
     "name": "com.copocopo.textmeshpro.animator",
+    "author": "Copocopo",
     "displayName": "TextMeshPro Animator",
     "version": "1.0.1",
     "unity": "2019.2",
@@ -8,5 +9,12 @@
     "category": "Animation",
     "dependencies": {
          "com.unity.textmeshpro": "2.0.1"
-    }
+    },
+    "samples": [
+        {
+            "displayName": "Sample Scene",
+            "description": "",
+            "path": "Copocopo/TextMeshProAnimation/Sample"
+        }
+    ]
 }
