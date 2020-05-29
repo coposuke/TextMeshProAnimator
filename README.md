@@ -127,4 +127,4 @@ White(1,1,1) は +0.5
 ノイズテクスチャのUVスクロールする速度を設定します。
 
 ## ■License
-[MIT](https://github.com/coposuke/TextMeshProAnimator/blob/master/LICENSE.md)
+[MIT](https://github.com/coposuke/TextMeshProAnimator/blob/master/LICENSE)
