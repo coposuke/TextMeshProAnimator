@@ -133,7 +133,7 @@ public class TextMeshProGeometryAnimator : MonoBehaviour
 		{
 			if (maxTime <= time) { return; }
 			if (maxTime <= 0.0f) { return; }
-			time += Time.deltaTime;
+			time += Time.deltaTime * animationData.speed;
 		}
 
 		if (maxTime <= time)
