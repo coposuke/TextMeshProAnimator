@@ -7,7 +7,6 @@ TextMesh Proのテキストをアニメーションさせることができま�
 ![サンプル３](https://github.com/coposuke/TextMeshProAnimator/blob/image/TMPA3.gif)
 ![サンプル４](https://github.com/coposuke/TextMeshProAnimator/blob/image/TMPA4.gif)
 
-
 ## ■導入方法
 
 ### 方法１ 手動
@@ -126,3 +125,6 @@ White(1,1,1) は +0.5
 
 #### Speed
 ノイズテクスチャのUVスクロールする速度を設定します。
+
+## ■License
+[MIT](https://github.com/coposuke/TextMeshProAnimator/blob/master/LICENSE.md)
