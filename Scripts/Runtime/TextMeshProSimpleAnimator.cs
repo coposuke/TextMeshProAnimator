@@ -17,8 +17,7 @@ public class TextMeshProSimpleAnimator : MonoBehaviour
 	/// <summary>
 	/// アニメーション中かどうか
 	/// </summary>
-	[System.NonSerialized]
-	public bool isAnimating = false;
+	public bool isAnimating { get; private set; } = false;
 
 	/// <summary>
 	/// ループするかどうか
@@ -39,7 +38,7 @@ public class TextMeshProSimpleAnimator : MonoBehaviour
 	/// <summary>
 	/// TextMeshPro
 	/// </summary>
-	private TMPro.TextMeshProUGUI text = default;
+	private TMPro.TMP_Text text = default;
 
 	/// <summary>
 	/// アニメーション時間
@@ -52,7 +51,7 @@ public class TextMeshProSimpleAnimator : MonoBehaviour
 	/// </summary>
 	private void Awake()
 	{
-		text = GetComponent<TMPro.TextMeshProUGUI>();
+		text = GetComponent<TMPro.TMP_Text>();
 	}
 
 	/// <summary>
@@ -87,10 +86,10 @@ public class TextMeshProSimpleAnimator : MonoBehaviour
 	{
 		if (this.isAnimating)
 			return;
-		//if(!isAnimating)
-		//	text.ForceMeshUpdate();
 
+		this.time = 0.0f;
 		this.isAnimating = true;
+		this.text.ForceMeshUpdate(true);
 		UpdateAnimation(0.0f);
 	}
 
@@ -112,6 +111,7 @@ public class TextMeshProSimpleAnimator : MonoBehaviour
 	/// </summary>
 	private void UpdateAnimation(float deltaTime)
 	{
+
 		int maxVisibleCharacters = this.text.textInfo.characterCount;
 		float maxTime = maxVisibleCharacters * speedPerCharacter;
 
