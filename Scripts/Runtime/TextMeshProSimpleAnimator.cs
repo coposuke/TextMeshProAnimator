@@ -116,18 +116,22 @@ public class TextMeshProSimpleAnimator : MonoBehaviour
 		float maxTime = maxVisibleCharacters * speedPerCharacter;
 
 		this.time += deltaTime;
-		if (this.time < maxTime)
-		{
-			int visibleCharacters = Mathf.FloorToInt(time / speedPerCharacter);
-			if (text.maxVisibleCharacters != visibleCharacters)
-				text.maxVisibleCharacters = visibleCharacters;
-		}
-		else
+
+		int visibleCharacters = Mathf.Clamp(Mathf.FloorToInt(time / speedPerCharacter), 0, maxVisibleCharacters);
+		if (text.maxVisibleCharacters != visibleCharacters)
+			text.maxVisibleCharacters = visibleCharacters;
+
+		if (this.time > maxTime)
 		{
 			if (this.isLoop)
-				this.time = 0.0f;
+			{
+				if (this.time >= maxTime + speedPerCharacter)
+					this.time = 0.0f;
+			}
 			else
+			{
 				Finish();
+			}
 		}
 	}
 }
