@@ -93,9 +93,9 @@ public class TextMeshProGeometryAnimation
 
 
 	/// <summary>
-	/// 再生速度(1chara/s)
+	/// 再生速度
 	/// </summary>
-	public float speed = 0.1f;
+	public float speed = 1.0f;
 
 	/// <summary>
 	/// 最大表示文字数をアニメーションさせるかどうか(下線等の描画を防ぐ)
