@@ -330,7 +330,7 @@ public class TextMeshProGeometryAnimator : MonoBehaviour
 
 				if (animationData.position.use)
 				{
-					var ratio = animationData.position.curve.Evaluate(CalcAnimationTime(time, i, animationData.position));
+					float ratio = animationData.position.curve.Evaluate(CalcAnimationTime(time, i, animationData.position));
 					var delta = Vector3.LerpUnclamped(animationData.position.from, animationData.position.to, ratio);
 					vertex0 += delta;
 					vertex1 += delta;
@@ -340,7 +340,7 @@ public class TextMeshProGeometryAnimator : MonoBehaviour
 
 				if (animationData.rotation.use)
 				{
-					var ratio = animationData.rotation.curve.Evaluate(CalcAnimationTime(time, i, animationData.rotation));
+					float ratio = animationData.rotation.curve.Evaluate(CalcAnimationTime(time, i, animationData.rotation));
 					var delta = Vector3.LerpUnclamped(animationData.rotation.from, animationData.rotation.to, ratio);
 					var center = Vector3.Scale(vertex2 - vertex0, animationData.pivot) + vertex0;
 					var matrix = Matrix4x4.Rotate(Quaternion.Euler(delta));
@@ -352,7 +352,7 @@ public class TextMeshProGeometryAnimator : MonoBehaviour
 
 				if (animationData.scale.use)
 				{
-					var ratio = animationData.scale.curve.Evaluate(CalcAnimationTime(time, i, animationData.scale));
+					float ratio = animationData.scale.curve.Evaluate(CalcAnimationTime(time, i, animationData.scale));
 					var delta = Vector3.LerpUnclamped(animationData.scale.from, animationData.scale.to, ratio);
 					var center = Vector3.Scale(vertex2 - vertex0, animationData.pivot) + vertex0;
 					vertex0 = Vector3.Scale(vertex0 - center, delta) + center;
@@ -368,7 +368,7 @@ public class TextMeshProGeometryAnimator : MonoBehaviour
 					uv = uv + animationData.positionNoise.speed * Time.timeSinceLevelLoad;
 					var noise = tex.GetPixel(Mathf.FloorToInt(uv.x % 1.0f * tex.width), Mathf.FloorToInt(uv.y % 1.0f * tex.height));
 
-					var ratio = animationData.positionNoise.curve.Evaluate(CalcAnimationTime(time, i, animationData.positionNoise));
+					float ratio = animationData.positionNoise.curve.Evaluate(CalcAnimationTime(time, i, animationData.positionNoise));
 					var delta = new Vector3(noise.r, noise.g, noise.b) * 2.0f - Vector3.one;
 					delta = delta * ratio;
 					vertex0 += delta;
@@ -384,7 +384,7 @@ public class TextMeshProGeometryAnimator : MonoBehaviour
 					uv = uv + animationData.rotationNoise.speed * Time.timeSinceLevelLoad;
 					var noise = tex.GetPixel(Mathf.FloorToInt(uv.x % 1.0f * tex.width), Mathf.FloorToInt(uv.y % 1.0f * tex.height));
 
-					var ratio = animationData.rotationNoise.curve.Evaluate(CalcAnimationTime(time, i, animationData.rotationNoise));
+					float ratio = animationData.rotationNoise.curve.Evaluate(CalcAnimationTime(time, i, animationData.rotationNoise));
 					var delta = new Vector3(noise.r, noise.g, noise.b) * 2.0f - Vector3.one;
 					var center = Vector3.Scale(vertex2 - vertex0, animationData.pivot) + vertex0;
 					var matrix = Matrix4x4.Rotate(Quaternion.Euler(delta * ratio));
@@ -401,8 +401,8 @@ public class TextMeshProGeometryAnimator : MonoBehaviour
 					uv = uv + animationData.scaleNoise.speed * Time.timeSinceLevelLoad;
 					var noise = tex.GetPixel(Mathf.FloorToInt(uv.x % 1.0f * tex.width), Mathf.FloorToInt(uv.y % 1.0f * tex.height));
 
-					var ratio = animationData.scaleNoise.curve.Evaluate(CalcAnimationTime(time, i, animationData.scaleNoise));
-					var delta = Vector3.Lerp(Vector2.one, new Vector3(noise.r, noise.g, noise.b) * 2.0f - Vector3.one, ratio);
+					float ratio = animationData.scaleNoise.curve.Evaluate(CalcAnimationTime(time, i, animationData.scaleNoise));
+					var delta = Vector3.one + (new Vector3(noise.r, noise.g, noise.b) * 2.0f - Vector3.one) * ratio;
 					var center = Vector3.Scale(vertex2 - vertex0, animationData.pivot) + vertex0;
 					vertex0 = Vector3.Scale(vertex0 - center, delta) + center;
 					vertex1 = Vector3.Scale(vertex1 - center, delta) + center;
@@ -428,14 +428,14 @@ public class TextMeshProGeometryAnimator : MonoBehaviour
 
 				if (animationData.color.use)
 				{
-					var ratio = animationData.color.curve.Evaluate(CalcAnimationTime(time, i, animationData.color));
+					float ratio = animationData.color.curve.Evaluate(CalcAnimationTime(time, i, animationData.color));
 					color0 = animationData.color.gradient.Evaluate(ratio);
 					color1 = color2 = color3 = color0;
 				}
 
 				if (animationData.alpha.use)
 				{
-					var ratio = animationData.alpha.curve.Evaluate(CalcAnimationTime(time, i, animationData.alpha));
+					float ratio = animationData.alpha.curve.Evaluate(CalcAnimationTime(time, i, animationData.alpha));
 					float alpha = Mathf.Lerp(animationData.alpha.from, animationData.alpha.to, ratio);
 					color0.a = (byte)(color0.a * Mathf.Clamp01(alpha));
 					color1 = color2 = color3 = color0;
@@ -448,11 +448,9 @@ public class TextMeshProGeometryAnimator : MonoBehaviour
 					uv = uv + animationData.colorNoise.speed * Time.timeSinceLevelLoad;
 					var noise = tex.GetPixel(Mathf.FloorToInt(uv.x % 1.0f * tex.width), Mathf.FloorToInt(uv.y % 1.0f * tex.height));
 
-					var ratio = animationData.colorNoise.curve.Evaluate(CalcAnimationTime(time, i, animationData.colorNoise));
-					color0 = Color32.Lerp(color0, color0 * noise, ratio);
-					color1 = Color32.Lerp(color1, color0 * noise, ratio);
-					color2 = Color32.Lerp(color2, color0 * noise, ratio);
-					color3 = Color32.Lerp(color3, color0 * noise, ratio);
+					float ratio = animationData.colorNoise.curve.Evaluate(CalcAnimationTime(time, i, animationData.colorNoise));
+					color0 = Color.white + (noise * 2.0f - Color.white) * ratio;
+					color1 = color2 = color3 = color0;
 				}
 
 				if (animationData.alphaNoise.use)
@@ -462,8 +460,8 @@ public class TextMeshProGeometryAnimator : MonoBehaviour
 					uv = uv + animationData.alphaNoise.speed * Time.timeSinceLevelLoad;
 					var noise = tex.GetPixel(Mathf.FloorToInt(uv.x % 1.0f * tex.width), Mathf.FloorToInt(uv.y % 1.0f * tex.height));
 
-					var ratio = animationData.alphaNoise.curve.Evaluate(CalcAnimationTime(time, i, animationData.alphaNoise));
-					color0.a = (byte)Mathf.Lerp(color0.a, color0.a * Mathf.Clamp01(noise.r), ratio);
+					float ratio = animationData.alphaNoise.curve.Evaluate(CalcAnimationTime(time, i, animationData.alphaNoise));
+					color0.a = (byte)(color0.a + (color0.a * noise.r * ratio));
 					color1 = color2 = color3 = color0;
 				}
 
