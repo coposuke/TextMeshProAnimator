@@ -318,7 +318,8 @@ public class TextMeshProGeometryAnimator : MonoBehaviour
 			// This is needed so the matrix TRS is applied at the origin for each character.
 			//Vector3 offset = charMidBasline;
 
-			if (animationData.position.use || animationData.rotation.use || animationData.scale.use || animationData.positionNoise.use || animationData.rotationNoise.use)
+			if (animationData.position.use || animationData.rotation.use || animationData.scale.use ||
+				animationData.positionNoise.use || animationData.rotationNoise.use || animationData.scaleNoise.use)
 			{
 				// Get the cached vertices of the mesh used by this text element (character or sprite).
 				Vector3[] verts = this.baseVertices[materialIndex];
