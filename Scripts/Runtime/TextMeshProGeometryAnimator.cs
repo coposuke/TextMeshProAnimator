@@ -433,14 +433,6 @@ public class TextMeshProGeometryAnimator : MonoBehaviour
 					color1 = color2 = color3 = color0;
 				}
 
-				if (animationData.alpha.use)
-				{
-					float ratio = animationData.alpha.curve.Evaluate(CalcAnimationTime(time, i, animationData.alpha));
-					float alpha = Mathf.Lerp(animationData.alpha.from, animationData.alpha.to, ratio);
-					color0.a = (byte)(color0.a * Mathf.Clamp01(alpha));
-					color1 = color2 = color3 = color0;
-				}
-
 				if (animationData.colorNoise.use)
 				{
 					var tex = animationData.colorNoise.noiseTexture;
@@ -453,6 +445,14 @@ public class TextMeshProGeometryAnimator : MonoBehaviour
 					color1 = color2 = color3 = color0;
 				}
 
+				if (animationData.alpha.use)
+				{
+					float ratio = animationData.alpha.curve.Evaluate(CalcAnimationTime(time, i, animationData.alpha));
+					float alpha = Mathf.Lerp(animationData.alpha.from, animationData.alpha.to, ratio);
+					color0.a = (byte)(color0.a * Mathf.Clamp01(alpha));
+					color1.a = color2.a = color3.a = color0.a;
+				}
+
 				if (animationData.alphaNoise.use)
 				{
 					var tex = animationData.alphaNoise.noiseTexture;
@@ -461,8 +461,8 @@ public class TextMeshProGeometryAnimator : MonoBehaviour
 					var noise = tex.GetPixel(Mathf.FloorToInt(uv.x % 1.0f * tex.width), Mathf.FloorToInt(uv.y % 1.0f * tex.height));
 
 					float ratio = animationData.alphaNoise.curve.Evaluate(CalcAnimationTime(time, i, animationData.alphaNoise));
-					color0.a = (byte)(color0.a + (color0.a * noise.r * ratio));
-					color1 = color2 = color3 = color0;
+					color0.a = (byte)(color0.a - byte.MaxValue * noise.r * ratio);
+					color1.a = color2.a = color3.a = color0.a;
 				}
 
 				Color32[] animatedColors = this.animatedColors[materialIndex];
