@@ -441,7 +441,7 @@ public class TextMeshProGeometryAnimator : MonoBehaviour
 					var noise = tex.GetPixel(Mathf.FloorToInt(uv.x % 1.0f * tex.width), Mathf.FloorToInt(uv.y % 1.0f * tex.height));
 
 					float ratio = animationData.colorNoise.curve.Evaluate(CalcAnimationTime(time, i, animationData.colorNoise));
-					color0 = Color.white + (noise * 2.0f - Color.white) * ratio;
+					color0 = color0 + (noise * 2.0f - Color.white) * ratio;
 					color1 = color2 = color3 = color0;
 				}
 
