@@ -20,11 +20,6 @@ public class TextMeshProSimpleAnimator : MonoBehaviour
 	public bool isAnimating { get; private set; } = false;
 
 	/// <summary>
-	/// ループするかどうか
-	/// </summary>
-	public bool isLoop = false;
-
-	/// <summary>
 	/// 1文字あたりの表示速度
 	/// </summary>
 	public float speedPerCharacter = 0.1f;
@@ -33,8 +28,13 @@ public class TextMeshProSimpleAnimator : MonoBehaviour
 	/// 自動再生
 	/// </summary>
 	[SerializeField]
-	private bool isAuto = false;
-	
+	private bool playOnEnable = false;
+
+	/// <summary>
+	/// ループするかどうか
+	/// </summary>
+	public bool isLoop = false;
+
 	/// <summary>
 	/// TextMeshPro
 	/// </summary>
@@ -59,7 +59,7 @@ public class TextMeshProSimpleAnimator : MonoBehaviour
 	/// </summary>
 	private void Start()
 	{
-		if (this.isAuto) { Play(); }
+		if (this.playOnEnable) { Play(); }
 	}
 
 	/// <summary>
@@ -67,7 +67,7 @@ public class TextMeshProSimpleAnimator : MonoBehaviour
 	/// </summary>
 	private void OnEnable()
 	{
-		if (this.isAuto) { Play(); }
+		if (this.playOnEnable) { Play(); }
 	}
 
 	/// <summary>

@@ -35,6 +35,12 @@ public class TextMeshProGeometryAnimator : MonoBehaviour
 	private bool playByProgress = false;
 
 	/// <summary>
+	/// ループするかどうか
+	/// </summary>
+	[SerializeField]
+	private bool isLoop = false;
+
+	/// <summary>
 	/// アニメーション中かどうか
 	/// </summary>
 	public bool isAnimating { get { return time < maxTime; } }
@@ -65,6 +71,8 @@ public class TextMeshProGeometryAnimator : MonoBehaviour
 	private Vector3[][] animatedVertices = default;
 	/// <summary>頂点カラーのアニメーション後</summary>
 	private Color32[][] animatedColors = default;
+	/// <summary>表示している文字数(のキャッシュ)</summary>
+	private int characterCount = 0;
 
 
 #if UNITY_EDITOR
@@ -131,8 +139,16 @@ public class TextMeshProGeometryAnimator : MonoBehaviour
 		}
 		else
 		{
-			if (maxTime <= time) { return; }
-			if (maxTime <= 0.0f) { return; }
+			if (isLoop)
+			{
+				if (maxTime <= time) { time = 0.0f; }
+			}
+			else
+			{
+				if (maxTime <= time) { return; }
+				if (maxTime <= 0.0f) { return; }
+			}
+
 			time += Time.deltaTime * animationData.speed;
 		}
 
@@ -142,7 +158,8 @@ public class TextMeshProGeometryAnimator : MonoBehaviour
 		}
 
 #if UNITY_EDITOR
-		progress = time / maxTime;
+		if(maxTime > 0.0f)
+			progress = time / maxTime;
 #endif
 
 		UpdateAnimation();
@@ -224,21 +241,21 @@ public class TextMeshProGeometryAnimator : MonoBehaviour
 	{
 		// 頂点キャッシュの確保
 		if (this.baseVertices == null)
-			this.baseVertices = new Vector3[textInfo.materialCount][];
+			this.baseVertices = new Vector3[this.textInfo.materialCount][];
 
 		if (this.baseColors == null)
-			this.baseColors = new Color32[textInfo.materialCount][];
+			this.baseColors = new Color32[this.textInfo.materialCount][];
 
 		if (this.animatedVertices == null)
-			this.animatedVertices = new Vector3[textInfo.materialCount][];
+			this.animatedVertices = new Vector3[this.textInfo.materialCount][];
 
 		if (this.animatedColors == null)
-			this.animatedColors = new Color32[textInfo.materialCount][];
+			this.animatedColors = new Color32[this.textInfo.materialCount][];
 
 		// 頂点キャッシュの内容更新
-		for (int i = 0; i < textInfo.materialCount; i++)
+		for (int i = 0; i < this.textInfo.materialCount; i++)
 		{
-			TMP_MeshInfo meshInfo = textInfo.meshInfo[i];
+			TMP_MeshInfo meshInfo = this.textInfo.meshInfo[i];
 
 			if (meshInfo.vertices == null || meshInfo.colors32 == null)
 				return false;
@@ -251,13 +268,13 @@ public class TextMeshProGeometryAnimator : MonoBehaviour
 				this.animatedColors[i] = new Color32[meshInfo.colors32.Length];
 
 			// MeshInfo 内の配列がごっそり変わった場合は参照切り替え & コピー
-			if (this.baseVertices[i] != meshInfo.vertices)
+			if (this.baseVertices[i] != meshInfo.vertices || this.characterCount != this.textInfo.characterCount)
 			{
 				this.baseVertices[i] = meshInfo.vertices;
 				System.Array.Copy(meshInfo.vertices, this.animatedVertices[i], meshInfo.vertices.Length);
 			}
 
-			if (this.baseColors[i] != meshInfo.colors32)
+			if (this.baseColors[i] != meshInfo.colors32 || this.characterCount != this.textInfo.characterCount)
 			{
 				this.baseColors[i] = meshInfo.colors32;
 				System.Array.Copy(meshInfo.colors32, this.animatedColors[i], meshInfo.colors32.Length);
@@ -292,6 +309,9 @@ public class TextMeshProGeometryAnimator : MonoBehaviour
 		// アニメーション用の頂点キャッシュ更新
 		if (!UpdateCachedVertex())
 			return;
+
+		// 文字数の保存
+		this.characterCount = this.textInfo.characterCount;
 
 		// 開始時等MeshInfoの生成が遅れるケースがあったため小さい数値をforに使用
 		var count = Mathf.Min(this.textInfo.characterCount, this.textInfo.characterInfo.Length);
