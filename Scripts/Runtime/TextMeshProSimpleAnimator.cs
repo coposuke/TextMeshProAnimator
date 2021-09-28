@@ -113,7 +113,7 @@ public class TextMeshProSimpleAnimator : MonoBehaviour
 	{
 
 		int maxVisibleCharacters = this.text.textInfo.characterCount;
-		float maxTime = maxVisibleCharacters * speedPerCharacter;
+		float maxTime = (maxVisibleCharacters + 1) * speedPerCharacter;
 
 		this.time += deltaTime;
 
@@ -125,8 +125,7 @@ public class TextMeshProSimpleAnimator : MonoBehaviour
 		{
 			if (this.isLoop)
 			{
-				if (this.time >= maxTime + speedPerCharacter)
-					this.time = 0.0f;
+				time = time % maxTime;
 			}
 			else
 			{

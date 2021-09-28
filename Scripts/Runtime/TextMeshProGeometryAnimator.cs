@@ -139,26 +139,21 @@ public class TextMeshProGeometryAnimator : MonoBehaviour
 		}
 		else
 		{
+			time += Time.deltaTime * animationData.speed;
+
 			if (isLoop)
 			{
-				if (maxTime <= time) { time = 0.0f; }
+				time += (time < 0f ? maxTime : 0f);
+				time %= maxTime;
 			}
 			else
 			{
-				if (maxTime <= time) { return; }
-				if (maxTime <= 0.0f) { return; }
+				time = Mathf.Clamp(time, 0f, maxTime);
 			}
-
-			time += Time.deltaTime * animationData.speed;
-		}
-
-		if (maxTime <= time)
-		{
-			time = maxTime;
 		}
 
 #if UNITY_EDITOR
-		if(maxTime > 0.0f)
+		if (0f < maxTime)
 			progress = time / maxTime;
 #endif
 
@@ -319,30 +314,16 @@ public class TextMeshProGeometryAnimator : MonoBehaviour
 		for (int i = 0; i < count; i++)
 		{
 			var charInfo = this.textInfo.characterInfo[i];
-
-			// Skip characters that are not visible and thus have no geometry to manipulate.
 			if (!charInfo.isVisible)
 				continue;
 
-			// Get the index of the material used by the current character.
 			int materialIndex = this.textInfo.characterInfo[i].materialReferenceIndex;
-
-			// Get the index of the first vertex used by this text element.
 			int vertexIndex = this.textInfo.characterInfo[i].vertexIndex;
 
-			// Determine the center point of each character at the baseline.
-			//Vector2 charMidBasline = new Vector2((sourceVertices[vertexIndex + 0].x + sourceVertices[vertexIndex + 2].x) / 2, charInfo.baseLine);
-			// Determine the center point of each character.
-			//Vector2 charMidBasline = (sourceVertices[vertexIndex + 0] + sourceVertices[vertexIndex + 2]) / 2;
-
-			// Need to translate all 4 vertices of each quad to aligned with middle of character / baseline.
-			// This is needed so the matrix TRS is applied at the origin for each character.
-			//Vector3 offset = charMidBasline;
-
+			// 姿勢アニメーション
 			if (animationData.position.use || animationData.rotation.use || animationData.scale.use ||
 				animationData.positionNoise.use || animationData.rotationNoise.use || animationData.scaleNoise.use)
 			{
-				// Get the cached vertices of the mesh used by this text element (character or sprite).
 				Vector3[] verts = this.baseVertices[materialIndex];
 				var vertex0 = verts[vertexIndex];
 				var vertex1 = verts[vertexIndex + 1];
@@ -438,9 +419,9 @@ public class TextMeshProGeometryAnimator : MonoBehaviour
 				animatedVerts[vertexIndex + 3] = vertex3;
 			}
 
+			// 色アニメーション
 			if (animationData.color.use || animationData.alpha.use || animationData.colorNoise.use || animationData.alphaNoise.use)
 			{
-				// Get the cached vertices of the mesh used by this text element (character or sprite).
 				Color32[] colors = this.baseColors[materialIndex];
 				var color0 = colors[vertexIndex];
 				var color1 = colors[vertexIndex + 1];
@@ -502,7 +483,6 @@ public class TextMeshProGeometryAnimator : MonoBehaviour
 			// OnValidateにてMeshの生成が遅れるケースがあったためNullチェック
 			if (textInfo.meshInfo[i].mesh == null) { continue; }
 #endif
-			// Push changes into meshes
 			textInfo.meshInfo[i].mesh.vertices = this.animatedVertices[i];
 			textInfo.meshInfo[i].mesh.colors32 = this.animatedColors[i];
 			textComponent.UpdateGeometry(textInfo.meshInfo[i].mesh, i);
