@@ -53,15 +53,13 @@ public class TextMeshProGeometryAnimator : MonoBehaviour
 
 
 	/// <summary>TextMeshPro Textコンポーネント</summary>
-	private TMP_Text textComponent;
+	private TMP_Text textComponent = default;
 	/// <summary>textComponent.textInfoのキャッシュ</summary>
-	private TMP_TextInfo textInfo;
-	/// <summary>textComponent.textに変更があったかどうか</summary>
-	private bool hasTextChanged;
+	private TMP_TextInfo textInfo = default;
 	/// <summary>アニメーション時間</summary>
-	private float time;
+	private float time = 0f;
 	/// <summary>アニメーション最大時間</summary>
-	private float maxTime;
+	private float maxTime = 0f;
 
 	/// <summary>頂点座標のキャッシュ</summary>
 	private Vector3[][] baseVertices = default;
@@ -87,7 +85,7 @@ public class TextMeshProGeometryAnimator : MonoBehaviour
 		}
 
 		this.time = this.maxTime * this.progress;
-		UpdateText(true);
+		UpdateText();
 		UpdateAnimation();
 	}
 #endif
@@ -98,7 +96,7 @@ public class TextMeshProGeometryAnimator : MonoBehaviour
 	private void Awake()
 	{
 		this.textComponent = GetComponent<TMP_Text>();
-		ON_TEXT_CHANGED(textComponent);
+		OnChangedText(textComponent);
 	}
 
 	/// <summary>
@@ -106,8 +104,7 @@ public class TextMeshProGeometryAnimator : MonoBehaviour
 	/// </summary>
 	private void OnEnable()
 	{
-		// Subscribe to event fired when text object has been regenerated.
-		TMPro_EventManager.TEXT_CHANGED_EVENT.Add(ON_TEXT_CHANGED);
+		TMPro_EventManager.TEXT_CHANGED_EVENT.Add(OnChangedText);
 
 		if (this.playOnEnable)
 			Play();
@@ -120,7 +117,7 @@ public class TextMeshProGeometryAnimator : MonoBehaviour
 	/// </summary>
 	private void OnDisable()
 	{
-		TMPro_EventManager.TEXT_CHANGED_EVENT.Remove(ON_TEXT_CHANGED);
+		TMPro_EventManager.TEXT_CHANGED_EVENT.Remove(OnChangedText);
 
 		Finish();
 	}
@@ -165,10 +162,13 @@ public class TextMeshProGeometryAnimator : MonoBehaviour
 	/// OnEnableとOnDisableにてTMPro_EventManagerに登録しています
 	/// </summary>
 	/// <param name="obj"></param>
-	private void ON_TEXT_CHANGED(Object obj)
+	private void OnChangedText(Object obj)
 	{
 		if (obj == this.textComponent)
-			this.hasTextChanged = true;
+		{
+			UpdateText();
+			UpdateAnimation();
+		}
 	}
 
 	/// <summary>
@@ -185,7 +185,7 @@ public class TextMeshProGeometryAnimator : MonoBehaviour
 	public void Play()
 	{
 		this.time = 0.0f;
-		UpdateText(true);
+		UpdateText();
 		UpdateAnimation();
 	}
 
@@ -195,37 +195,30 @@ public class TextMeshProGeometryAnimator : MonoBehaviour
 	public void Finish()
 	{
 		this.time = this.maxTime;
+		UpdateText();
 		UpdateAnimation();
 	}
 
 	/// <summary>
 	/// TMPro Textの情報更新
 	/// </summary>
-	private void UpdateText(bool forceUpdate)
+	private void UpdateText()
 	{
-		if (this.hasTextChanged || forceUpdate)
-		{
-			// ForceMeshUpdate は GCAlloc が発生するので取り扱い注意！！
-			this.textComponent.ForceMeshUpdate(true);
-			this.textInfo = textComponent.textInfo;
+		this.textInfo = textComponent.textInfo;
 
-			// 各アニメーション要素で、一番時間がかかるものを最大時間として計算
-			maxTime = Mathf.Max(
-				CalcAnimationTotalTime(this.textInfo.characterCount, this.animationData.position),
-				CalcAnimationTotalTime(this.textInfo.characterCount, this.animationData.rotation),
-				CalcAnimationTotalTime(this.textInfo.characterCount, this.animationData.scale),
-				CalcAnimationTotalTime(this.textInfo.characterCount, this.animationData.alpha),
-				CalcAnimationTotalTime(this.textInfo.characterCount, this.animationData.color),
-				CalcAnimationTotalTime(this.textInfo.characterCount, this.animationData.positionNoise),
-				CalcAnimationTotalTime(this.textInfo.characterCount, this.animationData.rotationNoise),
-				CalcAnimationTotalTime(this.textInfo.characterCount, this.animationData.scaleNoise),
-				CalcAnimationTotalTime(this.textInfo.characterCount, this.animationData.alphaNoise),
-				CalcAnimationTotalTime(this.textInfo.characterCount, this.animationData.colorNoise)
-			);
-
-			// ForceMeshUpdate にて ON_TEXT_CHANGED がコールされるので最後にフラグを下す
-			this.hasTextChanged = false;
-		}
+		// 各アニメーション要素で、一番時間がかかるものを最大時間として計算
+		maxTime = Mathf.Max(
+			CalcAnimationTotalTime(this.textInfo.characterCount, this.animationData.position),
+			CalcAnimationTotalTime(this.textInfo.characterCount, this.animationData.rotation),
+			CalcAnimationTotalTime(this.textInfo.characterCount, this.animationData.scale),
+			CalcAnimationTotalTime(this.textInfo.characterCount, this.animationData.alpha),
+			CalcAnimationTotalTime(this.textInfo.characterCount, this.animationData.color),
+			CalcAnimationTotalTime(this.textInfo.characterCount, this.animationData.positionNoise),
+			CalcAnimationTotalTime(this.textInfo.characterCount, this.animationData.rotationNoise),
+			CalcAnimationTotalTime(this.textInfo.characterCount, this.animationData.scaleNoise),
+			CalcAnimationTotalTime(this.textInfo.characterCount, this.animationData.alphaNoise),
+			CalcAnimationTotalTime(this.textInfo.characterCount, this.animationData.colorNoise)
+		);
 	}
 
 	/// <summary>
@@ -234,6 +227,9 @@ public class TextMeshProGeometryAnimator : MonoBehaviour
 	/// <returns>成功判定</returns>
 	private bool UpdateCachedVertex(bool forceCopy)
 	{
+		if (this.textInfo == null)
+			return false;
+
 		// 頂点キャッシュの確保
 		if (this.baseVertices == null)
 			this.baseVertices = new Vector3[this.textInfo.materialCount][];
@@ -284,26 +280,21 @@ public class TextMeshProGeometryAnimator : MonoBehaviour
 	/// </summary>
 	private void UpdateAnimation()
 	{
-		UpdateText(false);
-
 		// マーカーや下線等の追加描画物はどうしても描画されてしまうので、
 		// 表示最大数も合わせてアニメーションすることで対応しています。
-		// 恐らくtextInfo.meshInfoのどこかにありますが、未調査の為この実装になります。
+		bool forceCacheCopy = false;
 		if (this.animationData.useMaxVisibleCharacter)
 		{
-			var maxVisibleCharacters = CalcAnimationCharacterCount(time, this.animationData.alpha);
-			if (this.textComponent.maxVisibleCharacters != maxVisibleCharacters)
+			var visibleCharacters = CalcAnimationCharacterCount(time, this.animationData.alpha);
+			if (this.textComponent.maxVisibleCharacters != visibleCharacters)
 			{
-				// ForceMeshUpdate は GCAlloc が発生するので取り扱い注意！！
-				this.textComponent.maxVisibleCharacters = maxVisibleCharacters;
-				this.textComponent.ForceMeshUpdate(true);
-				this.textInfo = textComponent.textInfo;
-				UpdateCachedVertex(true);
+				this.textComponent.maxVisibleCharacters = visibleCharacters;
+				forceCacheCopy = true;
 			}
 		}
 
 		// アニメーション用の頂点キャッシュ更新
-		if (!UpdateCachedVertex(false))
+		if (!UpdateCachedVertex(forceCacheCopy))
 			return;
 
 		// 文字数の保存
