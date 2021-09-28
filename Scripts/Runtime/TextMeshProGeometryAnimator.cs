@@ -237,7 +237,7 @@ public class TextMeshProGeometryAnimator : MonoBehaviour
 	/// 頂点データのキャッシュ
 	/// </summary>
 	/// <returns>成功判定</returns>
-	private bool UpdateCachedVertex()
+	private bool UpdateCachedVertex(bool forceCopy)
 	{
 		// 頂点キャッシュの確保
 		if (this.baseVertices == null)
@@ -268,13 +268,13 @@ public class TextMeshProGeometryAnimator : MonoBehaviour
 				this.animatedColors[i] = new Color32[meshInfo.colors32.Length];
 
 			// MeshInfo 内の配列がごっそり変わった場合は参照切り替え & コピー
-			if (this.baseVertices[i] != meshInfo.vertices || this.characterCount != this.textInfo.characterCount)
+			if (forceCopy || this.baseVertices[i] != meshInfo.vertices || this.characterCount != this.textInfo.characterCount)
 			{
 				this.baseVertices[i] = meshInfo.vertices;
 				System.Array.Copy(meshInfo.vertices, this.animatedVertices[i], meshInfo.vertices.Length);
 			}
 
-			if (this.baseColors[i] != meshInfo.colors32 || this.characterCount != this.textInfo.characterCount)
+			if (forceCopy || this.baseColors[i] != meshInfo.colors32 || this.characterCount != this.textInfo.characterCount)
 			{
 				this.baseColors[i] = meshInfo.colors32;
 				System.Array.Copy(meshInfo.colors32, this.animatedColors[i], meshInfo.colors32.Length);
@@ -303,11 +303,12 @@ public class TextMeshProGeometryAnimator : MonoBehaviour
 				this.textComponent.maxVisibleCharacters = maxVisibleCharacters;
 				this.textComponent.ForceMeshUpdate(true);
 				this.textInfo = textComponent.textInfo;
+				UpdateCachedVertex(true);
 			}
 		}
 
 		// アニメーション用の頂点キャッシュ更新
-		if (!UpdateCachedVertex())
+		if (!UpdateCachedVertex(false))
 			return;
 
 		// 文字数の保存
@@ -535,6 +536,6 @@ public class TextMeshProGeometryAnimator : MonoBehaviour
 	static private int CalcAnimationCharacterCount(float time, TextMeshProGeometryAnimation.ItemBase item)
 	{
 		if (item.wave <= 0.0f) { return int.MaxValue; }
-		return (int)((time - item.delay) / item.wave);
+		return (int)((time - item.delay) / item.wave) + 1;
 	}
 }
