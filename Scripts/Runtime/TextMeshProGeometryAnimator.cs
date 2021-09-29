@@ -43,7 +43,9 @@ public class TextMeshProGeometryAnimator : MonoBehaviour
 	/// <summary>
 	/// アニメーション中かどうか
 	/// </summary>
-	public bool isAnimating { get { return time < maxTime; } }
+	public bool isAnimating { get { return isPlaying && time < maxTime; } }
+	/// <summary>再生フラグ</summary>
+	private bool isPlaying = false;
 
 	/// <summary>
 	/// 文字送りアニメーションデータ
@@ -84,8 +86,14 @@ public class TextMeshProGeometryAnimator : MonoBehaviour
 			this.textComponent = GetComponent<TMP_Text>();
 		}
 
-		this.time = this.maxTime * this.progress;
+		if (!Application.isPlaying)
+			this.time = this.maxTime * this.progress;
+
+		UpdateMaxVisibleCharacters();
+		this.textComponent.ForceMeshUpdate(true);
+
 		UpdateText();
+		UpdateCachedVertex(true);
 		UpdateAnimation();
 	}
 #endif
@@ -134,8 +142,10 @@ public class TextMeshProGeometryAnimator : MonoBehaviour
 		{
 			time = maxTime * progress;
 		}
-		else
+		else if (0f < maxTime)
 		{
+			if (!isPlaying) { return; }
+
 			time += Time.deltaTime * animationData.speed;
 
 			if (isLoop)
@@ -147,12 +157,11 @@ public class TextMeshProGeometryAnimator : MonoBehaviour
 			{
 				time = Mathf.Clamp(time, 0f, maxTime);
 			}
-		}
 
 #if UNITY_EDITOR
-		if (0f < maxTime)
 			progress = time / maxTime;
 #endif
+		}
 
 		UpdateAnimation();
 	}
@@ -184,6 +193,7 @@ public class TextMeshProGeometryAnimator : MonoBehaviour
 	/// </summary>
 	public void Play()
 	{
+		this.isPlaying = true;
 		this.time = 0.0f;
 		UpdateText();
 		UpdateAnimation();
@@ -194,6 +204,7 @@ public class TextMeshProGeometryAnimator : MonoBehaviour
 	/// </summary>
 	public void Finish()
 	{
+		this.isPlaying = false;
 		this.time = this.maxTime;
 		UpdateText();
 		UpdateAnimation();
@@ -275,23 +286,29 @@ public class TextMeshProGeometryAnimator : MonoBehaviour
 		return true;
 	}
 
-	/// <summary>
-	/// TMPro Textの頂点情報の編集
-	/// </summary>
-	private void UpdateAnimation()
+	private bool UpdateMaxVisibleCharacters()
 	{
 		// マーカーや下線等の追加描画物はどうしても描画されてしまうので、
 		// 表示最大数も合わせてアニメーションすることで対応しています。
-		bool forceCacheCopy = false;
 		if (this.animationData.useMaxVisibleCharacter)
 		{
 			var visibleCharacters = CalcAnimationCharacterCount(time, this.animationData.alpha);
 			if (this.textComponent.maxVisibleCharacters != visibleCharacters)
 			{
 				this.textComponent.maxVisibleCharacters = visibleCharacters;
-				forceCacheCopy = true;
+				return true;
 			}
 		}
+
+		return false;
+	}
+
+	/// <summary>
+	/// TMPro Textの頂点情報の編集
+	/// </summary>
+	private void UpdateAnimation()
+	{
+		bool forceCacheCopy = UpdateMaxVisibleCharacters();
 
 		// アニメーション用の頂点キャッシュ更新
 		if (!UpdateCachedVertex(forceCacheCopy))
