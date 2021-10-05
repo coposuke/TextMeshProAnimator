@@ -4,7 +4,7 @@
 // https://github.com/coposuke/TextMeshProAnimator
 //
 // ===================================
-
+//#define TMPA_OUTPUT_LOG
 
 using UnityEngine;
 using TMPro;
@@ -43,9 +43,7 @@ public class TextMeshProGeometryAnimator : MonoBehaviour
 	/// <summary>
 	/// アニメーション中かどうか
 	/// </summary>
-	public bool isAnimating { get { return isPlaying && time < maxTime; } }
-	/// <summary>再生フラグ</summary>
-	private bool isPlaying = false;
+	public bool isAnimating { get; private set; } = false;
 
 	/// <summary>
 	/// 文字送りアニメーションデータ
@@ -75,26 +73,49 @@ public class TextMeshProGeometryAnimator : MonoBehaviour
 	private int characterCount = 0;
 
 
+	#region Unity Events
 #if UNITY_EDITOR
 	/// <summary>
 	/// Unity Event OnValidate
 	/// </summary>
 	private void OnValidate()
 	{
+		if (Application.isPlaying)
+			return;
+
 		if (this.textComponent == null)
-		{
 			this.textComponent = GetComponent<TMP_Text>();
-		}
 
-		if (!Application.isPlaying)
-			this.time = this.maxTime * this.progress;
+		if (this.textComponent == null)
+			return;
 
-		UpdateMaxVisibleCharacters();
+		if (this.gameObject.activeSelf)
+			OnValidateChild();
+	}
+
+	/// <summary>
+	/// OnValidateの再帰メソッド
+	/// </summary>
+	private void OnValidateChild()
+	{
+		if (Application.isPlaying)
+			return;
+
+		// シーンロード後およびコンパイル直後はTextInfoが準備できていないので強制更新する
 		this.textComponent.ForceMeshUpdate(true);
 
-		UpdateText();
-		UpdateCachedVertex(true);
-		UpdateAnimation();
+		if (!Refresh(true))
+		{
+			// ゲームプレイ終了時はTextInfoが異常値な為,遅らせて処理する
+			UnityEditor.EditorApplication.delayCall += () =>
+			{
+				// ゲームプレイ終了時にDestroyされているケースを回避
+				if (this.textComponent == null)
+					return;
+
+				OnValidateChild();
+			};
+		}
 	}
 #endif
 
@@ -114,10 +135,13 @@ public class TextMeshProGeometryAnimator : MonoBehaviour
 	{
 		TMPro_EventManager.TEXT_CHANGED_EVENT.Add(OnChangedText);
 
+		// シーンロード時はTextInfoが異常値な為,強制更新する
+		this.textComponent?.ForceMeshUpdate(true);
+
 		if (this.playOnEnable)
 			Play();
 		else
-			Finish();
+			Refresh(true);
 	}
 
 	/// <summary>
@@ -126,8 +150,6 @@ public class TextMeshProGeometryAnimator : MonoBehaviour
 	private void OnDisable()
 	{
 		TMPro_EventManager.TEXT_CHANGED_EVENT.Remove(OnChangedText);
-
-		Finish();
 	}
 
 	/// <summary>
@@ -135,51 +157,44 @@ public class TextMeshProGeometryAnimator : MonoBehaviour
 	/// </summary>
 	private void Update()
 	{
+		if (this.textComponent == null) { return; }
+		if (!this.textComponent.isActiveAndEnabled) { return; }
 		if (null == animationData) { return; }
 		if (null == textInfo) { return; }
 
-		if (playByProgress)
+		if (this.isAnimating || this.playByProgress)
 		{
-			time = maxTime * progress;
-		}
-		else if (0f < maxTime)
-		{
-			if (!isPlaying) { return; }
+			UpdateTime(this.playByProgress, Time.deltaTime);
+			UpdateAnimation();
 
-			time += Time.deltaTime * animationData.speed;
-
-			if (isLoop)
+			if (this.isAnimating)
 			{
-				time += (time < 0f ? maxTime : 0f);
-				time %= maxTime;
+				if ((this.animationData.speed > 0 && this.time >= this.maxTime) ||
+					(this.animationData.speed < 0 && this.time <= 0f))
+				{
+					this.isAnimating = false;
+					Log($"TMPA Stop: {this.textComponent.name}");
+				}
 			}
-			else
-			{
-				time = Mathf.Clamp(time, 0f, maxTime);
-			}
-
-#if UNITY_EDITOR
-			progress = time / maxTime;
-#endif
 		}
-
-		UpdateAnimation();
 	}
 
 	/// <summary>
 	/// TextMesh Proのtext変更時に呼び出されるメソッドです
 	/// OnEnableとOnDisableにてTMPro_EventManagerに登録しています
 	/// </summary>
-	/// <param name="obj"></param>
 	private void OnChangedText(Object obj)
 	{
 		if (obj == this.textComponent)
 		{
-			UpdateText();
-			UpdateAnimation();
+			Log($"TMPA OnChangedText: {this.textComponent.name}");
+			Refresh(this.playByProgress);
 		}
 	}
+	#endregion
 
+
+	#region For User
 	/// <summary>
 	/// アニメーションデータの上書き設定
 	/// </summary>
@@ -193,21 +208,100 @@ public class TextMeshProGeometryAnimator : MonoBehaviour
 	/// </summary>
 	public void Play()
 	{
-		this.isPlaying = true;
-		this.time = 0.0f;
-		UpdateText();
-		UpdateAnimation();
+		Log($"TMPA Play: {this.textComponent.name}");
+		this.isAnimating = true;
+		Refresh(true);
 	}
 
 	/// <summary>
 	/// 強制終了
 	/// </summary>
-	public void Finish()
+	public void Finish(float normalizedTime = 0f)
 	{
-		this.isPlaying = false;
-		this.time = this.maxTime;
+		Log($"TMPA Finish: {this.textComponent.name}");
+		this.isAnimating = false;
+		this.time = this.maxTime * normalizedTime;
+		Refresh(false);
+	}
+	#endregion
+
+
+	#region Private Methods
+	private bool Refresh(bool useProgress)
+	{
 		UpdateText();
-		UpdateAnimation();
+
+		if (VerifyTextInfo())
+		{
+			UpdateTime(useProgress, 0f);
+
+			// MaxVisibleCharactersに変動があった場合はForceMeshUpdateでメッシュを更新する必要がある
+			if (UpdateMaxVisibleCharacters())
+			{
+				this.textComponent?.ForceMeshUpdate(true);
+				UpdateCachedVertex(true);
+			}
+
+			UpdateAnimation();
+
+			return true;
+		}
+
+		return false;
+	}
+
+	/// <summary>
+	/// 時間の更新
+	/// </summary>
+	private void UpdateTime(bool useProgress, float elapsedTime)
+	{
+		if (useProgress)
+		{
+			this.time = this.maxTime * this.progress;
+		}
+		else if (0f < this.maxTime)
+		{
+			if (!this.isAnimating) { return; }
+
+			this.time += elapsedTime * this.animationData.speed;
+
+			if (this.isLoop)
+			{
+				this.time += (this.time < 0f ? this.maxTime : 0f);
+				this.time %= this.maxTime;
+			}
+			else
+			{
+				this.time = Mathf.Clamp(this.time, 0f, this.maxTime);
+			}
+		}
+	}
+
+	/// <summary>
+	/// TMPro Textの情報が有効かどうか(主に開始時に異常値が発生する)
+	/// </summary>
+	private bool VerifyTextInfo()
+	{
+		if (this.textComponent == null)
+			return false;
+
+		if (!this.textComponent.isActiveAndEnabled)
+			return false;
+
+		if (this.textInfo == null)
+				return false;
+
+		if (this.textInfo.characterCount <= 0)
+			return false;
+
+		for (int i = 0; i < this.textInfo.materialCount; i++)
+		{
+			if (this.textInfo.meshInfo[i].vertices == null ||
+				this.textInfo.meshInfo[i].colors32 == null)
+				return false;
+		}
+
+		return true;
 	}
 
 	/// <summary>
@@ -215,10 +309,10 @@ public class TextMeshProGeometryAnimator : MonoBehaviour
 	/// </summary>
 	private void UpdateText()
 	{
-		this.textInfo = textComponent.textInfo;
+		this.textInfo = this.textComponent.textInfo;
 
 		// 各アニメーション要素で、一番時間がかかるものを最大時間として計算
-		maxTime = Mathf.Max(
+		this.maxTime = Mathf.Max(
 			CalcAnimationTotalTime(this.textInfo.characterCount, this.animationData.position),
 			CalcAnimationTotalTime(this.textInfo.characterCount, this.animationData.rotation),
 			CalcAnimationTotalTime(this.textInfo.characterCount, this.animationData.scale),
@@ -235,7 +329,7 @@ public class TextMeshProGeometryAnimator : MonoBehaviour
 	/// <summary>
 	/// 頂点データのキャッシュ
 	/// </summary>
-	/// <returns>成功判定</returns>
+	/// <returns>成功判定(失敗時は異常なTextInfoである, 主に開始時に発生)</returns>
 	private bool UpdateCachedVertex(bool forceCopy)
 	{
 		if (this.textInfo == null)
@@ -286,6 +380,10 @@ public class TextMeshProGeometryAnimator : MonoBehaviour
 		return true;
 	}
 
+	/// <summary>
+	/// MaxVisibleCharactersの更新
+	/// </summary>
+	/// <returns></returns>
 	private bool UpdateMaxVisibleCharacters()
 	{
 		// マーカーや下線等の追加描画物はどうしても描画されてしまうので、
@@ -308,6 +406,7 @@ public class TextMeshProGeometryAnimator : MonoBehaviour
 	/// </summary>
 	private void UpdateAnimation()
 	{
+		// Wave位置(テキストの動き出し)に合わせて,MaxVisibleCharactersの最大値を更新する
 		bool forceCacheCopy = UpdateMaxVisibleCharacters();
 
 		// アニメーション用の頂点キャッシュ更新
@@ -526,4 +625,13 @@ public class TextMeshProGeometryAnimator : MonoBehaviour
 		if (item.wave <= 0.0f) { return int.MaxValue; }
 		return (int)((time - item.delay) / item.wave) + 1;
 	}
+
+	[System.Diagnostics.Conditional("TMPA_OUTPUT_LOG")]
+	static private void Log(string str)
+	{
+#if TMPA_OUTPUT_LOG
+		Debug.Log(str);
+#endif
+	}
+	#endregion
 }
