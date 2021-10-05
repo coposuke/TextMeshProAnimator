@@ -2,7 +2,7 @@
     "name": "com.copocopo.textmeshpro.animator",
     "author": "copocopo",
     "displayName": "TextMeshPro Animator",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "unity": "2019.2",
     "description": "TextMeshPro Animator is a text animation system.",
     "keywords": ["TextMesh Pro", "Animation"],
