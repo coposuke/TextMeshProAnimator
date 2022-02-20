@@ -311,6 +311,9 @@ public class TextMeshProGeometryAnimator : MonoBehaviour
 	{
 		this.textInfo = this.textComponent.textInfo;
 
+		if (this.textInfo == null)
+			return;
+
 		// 各アニメーション要素で、一番時間がかかるものを最大時間として計算
 		this.maxTime = Mathf.Max(
 			CalcAnimationTotalTime(this.textInfo.characterCount, this.animationData.position),
